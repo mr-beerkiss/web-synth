@@ -1,3 +1,7 @@
+// TODO: Work out if this is actually required, and if so, what it actually does
+// FYI: It appears can `#![feature ...]` cannot be used on the stable release channel
+// #![feature(nll, box_syntax)]
+
 // original: https://github.com/Ameobea/web-synth/blob/master/engine/wavetable/src/lib.rs
 extern "C" {
   pub fn debug1_(id: i32, v1: f32);
@@ -31,13 +35,15 @@ pub struct WaveTableSettings {
 }
 
 impl WaveTableSettings {
-  pub fn get_wavetable_size(self: Self) -> f32 {
-    // TODO: Missing implementation
-    0.0 as f32
+  // TODO: What's the different between defining `&self` and `self: Self`
+  pub fn get_samples_per_dimension(&self) -> usize {
+    self.waveforms_per_dimension * self.waveform_length
   }
-  pub fn get_samples_per_dimension(self: Self) -> usize {
-    // TODO: Missing implementation
-    0
+
+  /// Returns the total number of `f32` samples that will be stored by this wavetable in all
+  /// dimensions and waveforms
+  pub fn get_wavetable_size(&self) -> usize {
+    self.dimension_count * self.get_samples_per_dimension()
   }
 }
 
@@ -55,7 +61,7 @@ impl WaveTable {
     let wave_table_data_size = settings.get_wavetable_size();
     WaveTable {
       settings,
-      samples: vec![-1.0, wave_table_data_size],
+      samples: vec![-1.0; wave_table_data_size],
     }
   }
 
@@ -121,6 +127,19 @@ pub struct WaveTableHandle {
 }
 
 impl WaveTableHandle {
+  pub fn new(table: &'static mut WaveTable) -> Self {
+    let dimension_count = table.settings.dimension_count;
+
+    WaveTableHandle {
+      table,
+      sample_ix: 0.0,
+      mixes: vec![0.0; dimension_count * 2 * 128],
+      mixes_for_sample: vec![0.0; dimension_count * 2],
+      sample_buffer: vec![0.; 256],
+      frequencies_buffer: vec![444.0; 128]
+    }
+  }
+
   fn get_sample_ix_offset(&self, frequency: f32) -> f32 {
     frequency / self.table.settings.base_frequency
   }
@@ -204,8 +223,8 @@ pub fn get_mixes_ptr(handle_ptr: *mut WaveTableHandle, sample_count: usize) -> *
 pub fn get_frequencies_ptr(handle_ptr: *mut WaveTableHandle, sample_count: usize) -> *mut f32 {
   let mut handle = unsafe { Box::from_raw(handle_ptr) };
 
-  while handle.frequencies.len() < sample_count {
-    handle.frequencies.push(440.0);
+  while handle.frequencies_buffer.len() < sample_count {
+    handle.frequencies_buffer.push(440.0);
   }
 
   let frequencies_ptr = handle.frequencies_buffer.as_mut_ptr();
@@ -249,3 +268,7 @@ pub fn get_samples(handle_ptr: *mut WaveTableHandle, sample_count: usize) -> *co
 #[no_mangle]
 pub fn drop_wavetable(table: *mut WaveTable) { drop(unsafe { Box::from_raw(table) }) }
 
+#[no_mangle]
+pub fn drop_wavetable_handle(handle_ptr: *mut WaveTableHandle ) {
+  drop(unsafe { Box::from_raw(handle_ptr) })
+}

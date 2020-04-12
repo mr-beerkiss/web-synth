@@ -1,9 +1,11 @@
 [package]
-name = "web-synth"
+name = "wavetable"
 version = "0.1.0"
 authors = ["Darren Beukes <code@darrenbeukes.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]

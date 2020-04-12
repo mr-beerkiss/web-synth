@@ -80,7 +80,7 @@ function generateSawtooth(sampleRate, frequency) {
   return buf;
 }
 
-const buildWaveTableData(dimensionCount, waveformsPerDimension, waveformSampleCount) {
+function buildWaveTableData(dimensionCount, waveformsPerDimension, waveformSampleCount) {
   // NOTE: The author felt a big 1D array is more efficient than using a real multi-dimensional 
   // array since all of the data is in the same allocation and the different waveforms are near 
   // each other in memory
