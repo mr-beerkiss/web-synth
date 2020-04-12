@@ -4,11 +4,11 @@ Still a long way to go but it works
 
 ## TODO
 
-[ ] - Convert JS to Typescript
-[ ] - Create UI controls for Synth
-[ ] - Create visual image representation of how it's working
-[ ] - WTF is FM synthesis
-[ ] - Incorporate FreeVerb
+- [ ] Convert JS to Typescript
+- [ ] Create UI controls for Synth
+- [ ] Create visual image representation of how it's working
+- [ ] WTF is FM synthesis
+- [ ] Incorporate FreeVerb
 
 ## CREDITS
 
