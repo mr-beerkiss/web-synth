@@ -10,7 +10,7 @@ function generateSineWave(sampleRate, frequency) {
   const waveformSampleCount = sampleRate / frequency;
   
   for (let x=0; x < waveformSampleCount; x += 1) {
-    // buf[x] = Math.sin(x * ((Math.PI * 2) / waveformSampleCount));
+    buf[x] = Math.sin(x * ((Math.PI * 2) / waveformSampleCount));
     buf[x] = Math.sin(x * Math.PI * 2 / waveformSampleCount);
   }
 
@@ -80,28 +80,28 @@ function generateSawtooth(sampleRate, frequency) {
   return buf;
 }
 
-function buildWaveTableData(dimensionCount, waveformsPerDimension, waveformSampleCount) {
-  // NOTE: The author felt a big 1D array is more efficient than using a real multi-dimensional 
-  // array since all of the data is in the same allocation and the different waveforms are near 
-  // each other in memory
-  const waveTableData = new Float32Array(
-    dimensionCount * waveformsPerDimension * waveformSampleCount
-  );
+// function buildWaveTableData(dimensionCount, waveformsPerDimension, waveformSampleCount) {
+//   // NOTE: The author felt a big 1D array is more efficient than using a real multi-dimensional 
+//   // array since all of the data is in the same allocation and the different waveforms are near 
+//   // each other in memory
+//   const waveTableData = new Float32Array(
+//     dimensionCount * waveformsPerDimension * waveformSampleCount
+//   );
 
-  // wtf is this?
-  const samplesPerDimension = -1;
+//   // wtf is this?
+//   const samplesPerDimension = -1;
 
-  for (let dimensionIx = 0; dimensionIx < dimensionCount; dimensionIx += 1) {
-    for (let waveformIx = 0; waveformIx < waveformsPerDimension; waveformIx += 1) {
-      for (let sampleIx = 0; sampleIx < waveformSampleCount; sampleIx += 1) {
-        const index = samplesPerDimension * dimensionIx + waveformSampleCount * waveformIx + sampleIx;
-        waveTableData[index] = waveTableData[dimensionIx][waveformIx][sampleIx];
-      }
-    }
-  }
+//   for (let dimensionIx = 0; dimensionIx < dimensionCount; dimensionIx += 1) {
+//     for (let waveformIx = 0; waveformIx < waveformsPerDimension; waveformIx += 1) {
+//       for (let sampleIx = 0; sampleIx < waveformSampleCount; sampleIx += 1) {
+//         const index = samplesPerDimension * dimensionIx + waveformSampleCount * waveformIx + sampleIx;
+//         waveTableData[index] = waveTableData[dimensionIx][waveformIx][sampleIx];
+//       }
+//     }
+//   }
 
-  return waveTableData;
-}
+//   return waveTableData;
+// }
 
 function createOscillator(ctx, workletHandle) {
   // create an oscillator that outputs a 2hz triangle wave
@@ -127,12 +127,15 @@ function createOscillator(ctx, workletHandle) {
   oscillatorGain.connect(dimension0Mix);
 }
 
-!async function() {
+async function init() {
   // Register our custom `AudioWorkletProcessor`, and create an `AudioWorkletNode` that serves as a
   // handle to an instance of one.
   const ctx = new AudioContext();
-  await ctx.audioWorklet.addModule("/WaveTableProcessor.js");
+  await ctx.audioWorklet.addModule("/WaveTableNodeProcessor.js");
   const workletHandle = new AudioWorkletNode(ctx, "wavetable-node-processor");
+
+  workletHandle.parameters.get('frequency').value = 516.41;
+  // console.log(workletHandle.parameters.get('frequency'));
 
   const waveformSampleCount = SAMPLE_RATE / desiredFrequency;
 
@@ -159,11 +162,11 @@ function createOscillator(ctx, workletHandle) {
   );
 
   for (let dimensionIx = 0; dimensionIx < dimensionCount; dimensionIx += 1) {
-    for (let waveformIx = 0; waveFormIx < waveformsPerDimension; waveformIx +=1 ) {
+    for (let waveformIx = 0; waveformIx < waveformsPerDimension; waveformIx +=1 ) {
       for (let sampleIx = 0; sampleIx < waveformSampleCount; sampleIx += 1) {
         tableSamples[
           samplesPerDimension * dimensionIx +
-            waveformSampleCount * waveFormIx +
+            waveformSampleCount * waveformIx +
             sampleIx
         ] = wavetableDef[dimensionIx][waveformIx][sampleIx];
       }
@@ -171,7 +174,9 @@ function createOscillator(ctx, workletHandle) {
   }
   
   
-  const baseFrequency = 440.0;
+  // FIXME: OG handles this differently, using base frequency (used to generate waveforms)
+  // as the param to the worklet
+  // const baseFrequency = 440.0;
   
   // Fetch the Wasm module as raw bytes
   const res = await fetch("./wavetable.wasm");
@@ -182,13 +187,67 @@ function createOscillator(ctx, workletHandle) {
     arrayBuffer: moduleBytes,
     waveformsPerDimension,
     dimensionCount,
-    wavformLength: waveformSampleCount,
-    baseFrequency,
+    waveformLength: waveformSampleCount,
+    // baseFrequency
+    // FIXME: Rename
+    baseFrequency: desiredFrequency,
     tableSamples
   });
 
 
   workletHandle.connect(ctx.destination);
 
-  createOscillator(ctx, workletHandle);
-}();
+  // TODO: Toggle oscillator
+  //createOscillator(ctx, workletHandle);
+
+  return ctx;
+}
+
+// !async function() {
+  
+// }();
+
+let ready = false;
+let playing = false;
+let audioContext = null;
+
+async function playHandler(e) {
+  try {
+    if (!ready) {
+      audioContext = await init();
+      ready = true;
+      console.log("Audio context ready...");
+    }
+  } catch (err) {
+    console.log("Error trying to init audioContext", err);
+    return;
+  }
+  
+  if (!audioContext) {
+    throw new Error("Whoops, something went very wrong");
+  }
+  
+  try {
+    if (playing) {
+      await audioContext.resume();
+      console.log("Starting playing..."); 
+      e.target.innerText = "Stop";
+    } else {
+      audioContext.suspend();
+      console.log("Starting stopped..."); 
+      e.target.innerText = "Play";
+    }
+
+    playing = !playing;
+  } catch (err) {
+    console.log("Error occurred attempting to control sound", err);
+  }
+    
+}
+  
+
+window.onload = function(e) {
+  console.log("Hello world!");
+  const button = document.querySelector('#play-sound-button');
+  button.onclick = this.playHandler;
+};

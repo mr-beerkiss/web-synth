@@ -34,6 +34,12 @@ pub struct WaveTableSettings {
   pub base_frequency: f32,
 }
 
+// waveformsPerDimension: 2
+// dimensionCount: 2
+// wavformLength: 1470
+// baseFrequency: 440
+
+
 impl WaveTableSettings {
   // TODO: What's the different between defining `&self` and `self: Self`
   pub fn get_samples_per_dimension(&self) -> usize {
@@ -43,6 +49,12 @@ impl WaveTableSettings {
   /// Returns the total number of `f32` samples that will be stored by this wavetable in all
   /// dimensions and waveforms
   pub fn get_wavetable_size(&self) -> usize {
+    debug3(
+      52, 
+      self.waveforms_per_dimension as f32,
+      self.waveform_length  as f32,
+      self.dimension_count  as f32
+    );
     self.dimension_count * self.get_samples_per_dimension()
   }
 }
@@ -59,6 +71,7 @@ fn mix(mix_factor: f32, low: f32, high: f32) -> f32 {
 impl WaveTable {
   pub fn new(settings: WaveTableSettings) -> Self {
     let wave_table_data_size = settings.get_wavetable_size();
+    debug1(68, wave_table_data_size as f32);
     WaveTable {
       settings,
       samples: vec![-1.0; wave_table_data_size],
@@ -171,6 +184,9 @@ pub fn init_wavetable(
   waveform_length: usize,
   base_frequency: f32,
 ) -> *mut WaveTable {
+
+
+
   let settings= WaveTableSettings {
     waveforms_per_dimension,
     dimension_count,

@@ -20,7 +20,8 @@ const importObject = {
 const MAX_DIMENSION_COUNT = 16;
 const BYTES_PER_F32 = 32 / 8;
 
-const FRAME_SIZE = -1;
+// TODO: Why is FRAME_SIZE = 128?
+const FRAME_SIZE = 128;
 
 // const SAMPLE_RATE = 44100;
 
@@ -61,7 +62,7 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     this.wavetablePtr = this.wasmInstance.exports.init_wavetable(
       data.waveformsPerDimension,
       data.dimensionCount,
-      data.waveformSampleCount,
+      data.waveformLength,
       data.baseFrequency
     );
 
@@ -109,13 +110,13 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     }
     this.mixesArrayOffset = mixesPtr / BYTES_PER_F32;
 
-    const f32WasmMemoryView = new Float32Array(
-      this.wasmInstance.exports.memory.buffer
-    );
-    const f32WasmMemoryBufferIx = wavetableDataPtr / BYTES_PER_F32;
+    // const f32WasmMemoryView = new Float32Array(
+    //   this.wasmInstance.exports.memory.buffer
+    // );
+    // const f32WasmMemoryBufferIx = wavetableDataPtr / BYTES_PER_F32;
 
-    // TODO: Where is `wavetableData` defined?
-    f32WasmMemoryView.set(wavetableData, f32WasmMemoryBufferIx);
+    // // TODO: Where is `wavetableData` defined?
+    // f32WasmMemoryView.set(wavetableData, f32WasmMemoryBufferIx);
   }
 
   process(_inputs, outputs, params) {
@@ -243,3 +244,5 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     ];
   }
 }
+
+registerProcessor("wavetable-node-processor", WaveTableNodeProcessor);
