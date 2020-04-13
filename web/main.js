@@ -1,32 +1,32 @@
 const SAMPLE_RATE = 44100;
-const desiredFrequency = 30;  // 30hz
+const desiredFrequency = 30; // 30hz
 
-// Sine waves are just the sine function. The sine function naturally has a period of 2π, and we 
-// need to scale that into a period of (sample_rate / desired_frequency). So, the equation we use 
+// Sine waves are just the sine function. The sine function naturally has a period of 2π, and we
+// need to scale that into a period of (sample_rate / desired_frequency). So, the equation we use
 // to generate the samples of our 30hz sine wave is y = sin(x * (2π / (44100 / 30))):
 function generateSineWave(sampleRate, frequency) {
   const buf = [];
 
   const waveformSampleCount = sampleRate / frequency;
-  
-  for (let x=0; x < waveformSampleCount; x += 1) {
+
+  for (let x = 0; x < waveformSampleCount; x += 1) {
     buf[x] = Math.sin(x * ((Math.PI * 2) / waveformSampleCount));
-    buf[x] = Math.sin(x * Math.PI * 2 / waveformSampleCount);
+    buf[x] = Math.sin((x * Math.PI * 2) / waveformSampleCount);
   }
 
   return buf;
 }
 
-// Triangle waves start at -1, spend half a period rising linearly to 1, and then half a period 
-// linearly falling back down to -1. I found that the easiest way to think about this one was to 
+// Triangle waves start at -1, spend half a period rising linearly to 1, and then half a period
+// linearly falling back down to -1. I found that the easiest way to think about this one was to
 // treat it as a repeating piecewise function with one piece on each half of the waveform
 function generateTriangleWave(sampleRate, frequency) {
   const buf = [];
 
   const waveformSampleCount = sampleRate / frequency;
-  
+
   // triangle wave; goes from -1 to 1 for one half the period, and 1 to -1 the other half
-  for (let x=0; x < waveformSampleCount; x += 1) {
+  for (let x = 0; x < waveformSampleCount; x += 1) {
     // Number of half-periods of this wave that this sample lies on.
     const halfPeriodIx = x / (waveformSampleCount / 2);
     const isClimbing = Math.floor(halfPeriodIx) % 2 == 0;
@@ -50,7 +50,7 @@ function generateSquareWave(sampleRate, frequency) {
 
   const waveformSampleCount = sampleRate / frequency;
 
-  for (let x = 0; x < waveformSampleCount; x += 1 ) {
+  for (let x = 0; x < waveformSampleCount; x += 1) {
     const halfPeriodIx = x / (waveformSampleCount / 2);
     const isFirstHalf = Math.floor(halfPeriodIx) % 2 == 0;
 
@@ -60,8 +60,8 @@ function generateSquareWave(sampleRate, frequency) {
   return buf;
 }
 
-// Sawtooth waves start at -1 and then rise linearly to 1 throughout the whole period, resetting 
-// back to -1 immediately at the beginning of the next period. It can be implemented rather easily 
+// Sawtooth waves start at -1 and then rise linearly to 1 throughout the whole period, resetting
+// back to -1 immediately at the beginning of the next period. It can be implemented rather easily
 // by just repeating a scaled y = x function:
 function generateSawtooth(sampleRate, frequency) {
   const buf = [];
@@ -69,7 +69,7 @@ function generateSawtooth(sampleRate, frequency) {
   const waveformSampleCount = sampleRate / frequency;
 
   // sawtooth; climb from -1 to 1 over 1 period
-  for (let x=0; x < waveformSampleCount; x += 1) {
+  for (let x = 0; x < waveformSampleCount; x += 1) {
     // what fraction of the way we are through the current period
     const periodIxFract = (x / waveformSampleCount) % 1;
 
@@ -80,34 +80,11 @@ function generateSawtooth(sampleRate, frequency) {
   return buf;
 }
 
-// function buildWaveTableData(dimensionCount, waveformsPerDimension, waveformSampleCount) {
-//   // NOTE: The author felt a big 1D array is more efficient than using a real multi-dimensional 
-//   // array since all of the data is in the same allocation and the different waveforms are near 
-//   // each other in memory
-//   const waveTableData = new Float32Array(
-//     dimensionCount * waveformsPerDimension * waveformSampleCount
-//   );
-
-//   // wtf is this?
-//   const samplesPerDimension = -1;
-
-//   for (let dimensionIx = 0; dimensionIx < dimensionCount; dimensionIx += 1) {
-//     for (let waveformIx = 0; waveformIx < waveformsPerDimension; waveformIx += 1) {
-//       for (let sampleIx = 0; sampleIx < waveformSampleCount; sampleIx += 1) {
-//         const index = samplesPerDimension * dimensionIx + waveformSampleCount * waveformIx + sampleIx;
-//         waveTableData[index] = waveTableData[dimensionIx][waveformIx][sampleIx];
-//       }
-//     }
-//   }
-
-//   return waveTableData;
-// }
-
 function createOscillator(ctx, workletHandle) {
   // create an oscillator that outputs a 2hz triangle wave
   const oscillator = new OscillatorNode(ctx);
   oscillator.frequency.value = 2;
-  oscillator.type = 'triangle';
+  oscillator.type = "triangle";
   oscillator.start();
 
   // Map the oscillator's output range from [-1, 1] to [0, 1]
@@ -123,22 +100,19 @@ function createOscillator(ctx, workletHandle) {
   oscillatorCSN.start();
 
   // `oscillatorGain` now outputs a signal in the proper range to modulate our mix param
-  const dimension0Mix = workletHandle.parameters.get('dimension_0_mix');
+  const dimension0Mix = workletHandle.parameters.get("dimension_0_mix");
   oscillatorGain.connect(dimension0Mix);
 }
-
 
 async function init() {
   // Register our custom `AudioWorkletProcessor`, and create an `AudioWorkletNode` that serves as a
   // handle to an instance of one.
   const ctx = new AudioContext();
 
-
-
   await ctx.audioWorklet.addModule("/WaveTableNodeProcessor.js");
   const workletHandle = new AudioWorkletNode(ctx, "wavetable-node-processor");
 
-  settingsUI(ctx, workletHandle);  
+  settingsUI(ctx, workletHandle);
 
   // workletHandle.parameters.get('frequency').value = 516.41;
   // console.log(workletHandle.parameters.get('frequency'));
@@ -150,7 +124,7 @@ async function init() {
   const wavetableDef = [
     [
       generateSineWave(SAMPLE_RATE, desiredFrequency),
-      generateTriangleWave(SAMPLE_RATE, desiredFrequency)
+      generateTriangleWave(SAMPLE_RATE, desiredFrequency),
     ],
     [
       generateSquareWave(SAMPLE_RATE, desiredFrequency),
@@ -160,7 +134,7 @@ async function init() {
 
   const dimensionCount = 2; // probably wavetableDef.length
   const waveformsPerDimension = 2; // probably wavetableDef[x].length
-  
+
   const samplesPerDimension = waveformSampleCount * waveformsPerDimension;
 
   const tableSamples = new Float32Array(
@@ -168,7 +142,11 @@ async function init() {
   );
 
   for (let dimensionIx = 0; dimensionIx < dimensionCount; dimensionIx += 1) {
-    for (let waveformIx = 0; waveformIx < waveformsPerDimension; waveformIx +=1 ) {
+    for (
+      let waveformIx = 0;
+      waveformIx < waveformsPerDimension;
+      waveformIx += 1
+    ) {
       for (let sampleIx = 0; sampleIx < waveformSampleCount; sampleIx += 1) {
         tableSamples[
           samplesPerDimension * dimensionIx +
@@ -178,12 +156,11 @@ async function init() {
       }
     }
   }
-  
-  
+
   // FIXME: OG handles this differently, using base frequency (used to generate waveforms)
   // as the param to the worklet
   // const baseFrequency = 440.0;
-  
+
   // Fetch the Wasm module as raw bytes
   const res = await fetch("./wavetable.wasm");
   const moduleBytes = await res.arrayBuffer();
@@ -197,26 +174,15 @@ async function init() {
     // baseFrequency
     // FIXME: Rename
     baseFrequency: desiredFrequency,
-    tableSamples
+    tableSamples,
   });
 
-
   workletHandle.connect(ctx.destination);
-
-  // settingsUI(ctx);
-
-  // TODO: Toggle oscillator
-  //createOscillator(ctx, workletHandle);
-
-  // createGlobalGain(ctx);
 
   return ctx;
 }
 
-// !async function() {
-  
-// }();
-
+// TODO: Remove global vars
 let ready = false;
 let playing = false;
 let audioContext = null;
@@ -227,25 +193,24 @@ async function playHandler(e) {
       audioContext = await init();
       ready = true;
       info("Audio context ready...");
-      // settingsUI(audioContext);
     }
   } catch (error) {
     err("Error trying to init audioContext", error);
     return;
   }
-  
+
   if (!audioContext) {
     throw new Error("Whoops, something went very wrong");
   }
-  
+
   try {
     if (!playing) {
       await audioContext.resume();
-      info("Starting playing..."); 
+      info("Starting playing...");
       e.target.innerText = "Stop";
     } else {
       audioContext.suspend();
-      info("Stop"); 
+      info("Stop");
       e.target.innerText = "Play";
     }
 
@@ -253,76 +218,53 @@ async function playHandler(e) {
   } catch (error) {
     err("Error occurred attempting to control sound", error);
   }
-    
 }
 
 function settingsUI(ctx, workletHandle) {
   gainControl(ctx);
   freqControl(workletHandle);
-  // const gainControl = document.querySelector('#gain-control');
 
-  // NOTE: `oninput` doesn't work on IE10
-  // gainControl.addEventListener("change", handlerFn);
-  
-
-  
+  // TODO: Toggle oscillator
+  //createOscillator(ctx, workletHandle);
 }
 
 function freqControl(workletHandle) {
-  const inputEl = document.querySelector('#freq-control');
-  inputEl.addEventListener("input", function(e) {
+  const inputEl = document.querySelector("#freq-control");
+  inputEl.addEventListener("input", function (e) {
     const val = event.target.value;
     console.log(`Frequency: ${val}hz`);
-    // globalGain.gain.value = event.target.value / 150;
-    // gainNode.gain.setValueAtTime(event.target.value, ctx.currentTime)
-    workletHandle.parameters.get("frequency").value = val; 
+    workletHandle.parameters.get("frequency").value = val;
   });
 
-  inputEl.addEventListener("click", function(e) {
-    info(`Frequency control released. New gain value = ${workletHandle.parameters.get("frequency").value}`);
+  inputEl.addEventListener("click", function (e) {
+    info(
+      `Frequency control released. New gain value = ${
+        workletHandle.parameters.get("frequency").value
+      }`
+    );
   });
 }
 
+// FIXME: Gain control doesn't appear to be working
 function gainControl(ctx) {
-  // const globalGain = new GainNode(ctx);
-
-  // // TODO: Why division by 150
+  // TODO: Why division by 150 (OG code)
   // globalGain.gain.value = 5/150;
 
-  // globalGain.connect(ctx.destination);
-
-  // return globalGain;
+  // TODO: MDN recommends not using `new GainNode()` directly, why?
   const gainNode = ctx.createGain();
   gainNode.connect(ctx.destination);
 
-
-
-  // const gainHandlerFn = volumeHandler(globalGain);
-  const inputEl = document.querySelector('#gain-control');
-  inputEl.addEventListener("input", function(e) {
+  // NOTE: `oninput` doesn't work on IE10
+  const inputEl = document.querySelector("#gain-control");
+  inputEl.addEventListener("input", function (e) {
     console.log(`New Gain: ${event.target.value}`);
-    // globalGain.gain.value = event.target.value / 150;
-    gainNode.gain.setValueAtTime(event.target.value, ctx.currentTime)
+    gainNode.gain.setValueAtTime(event.target.value, ctx.currentTime);
   });
 
-  inputEl.addEventListener("click", function(e) {
+  inputEl.addEventListener("click", function (e) {
     info(`Gain control released. New gain value = ${gainNode.gain.value}`);
   });
 }
-
-
-// let theGain;
-
-// function volumeHandler(globalGain) {
-//   theGain = globalGain;
-//   return function(event) {
-//     // TODO: Why 150?
-//     console.log(`New Gain: ${event.target.value}`);
-//     // globalGain.gain.value = event.target.value / 150;
-//     gainNode.gain.setValueAtTime(event.target.value, audioCtx.currentTime)
-//   }
-// }
-
 
 function info(msg) {
   console.log(msg);
@@ -331,7 +273,7 @@ function info(msg) {
 
 function err(msg, error) {
   console.error(msg, error);
-  const errMsg = error ? `${msg}. Details: ${e.message}` : msg; 
+  const errMsg = error ? `${msg}. Details: ${e.message}` : msg;
   writeMessage("error", errMsg);
 }
 
@@ -351,11 +293,8 @@ function writeMessage(type, msg) {
 
 function onLoadHandler(e) {
   info("Hello world!");
-  const button = document.querySelector('#play-button');
+  const button = document.querySelector("#play-button");
   button.onclick = playHandler;
-
-  // info("test info message");
-  // err("test error message");
 }
 
 window.onload = onLoadHandler;
