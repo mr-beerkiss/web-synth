@@ -127,14 +127,20 @@ function createOscillator(ctx, workletHandle) {
   oscillatorGain.connect(dimension0Mix);
 }
 
+
 async function init() {
   // Register our custom `AudioWorkletProcessor`, and create an `AudioWorkletNode` that serves as a
   // handle to an instance of one.
   const ctx = new AudioContext();
+
+
+
   await ctx.audioWorklet.addModule("/WaveTableNodeProcessor.js");
   const workletHandle = new AudioWorkletNode(ctx, "wavetable-node-processor");
 
-  workletHandle.parameters.get('frequency').value = 516.41;
+  settingsUI(ctx, workletHandle);  
+
+  // workletHandle.parameters.get('frequency').value = 516.41;
   // console.log(workletHandle.parameters.get('frequency'));
 
   const waveformSampleCount = SAMPLE_RATE / desiredFrequency;
@@ -197,8 +203,12 @@ async function init() {
 
   workletHandle.connect(ctx.destination);
 
+  // settingsUI(ctx);
+
   // TODO: Toggle oscillator
   //createOscillator(ctx, workletHandle);
+
+  // createGlobalGain(ctx);
 
   return ctx;
 }
@@ -216,10 +226,11 @@ async function playHandler(e) {
     if (!ready) {
       audioContext = await init();
       ready = true;
-      console.log("Audio context ready...");
+      info("Audio context ready...");
+      // settingsUI(audioContext);
     }
-  } catch (err) {
-    console.log("Error trying to init audioContext", err);
+  } catch (error) {
+    err("Error trying to init audioContext", error);
     return;
   }
   
@@ -228,26 +239,123 @@ async function playHandler(e) {
   }
   
   try {
-    if (playing) {
+    if (!playing) {
       await audioContext.resume();
-      console.log("Starting playing..."); 
+      info("Starting playing..."); 
       e.target.innerText = "Stop";
     } else {
       audioContext.suspend();
-      console.log("Starting stopped..."); 
+      info("Stop"); 
       e.target.innerText = "Play";
     }
 
     playing = !playing;
-  } catch (err) {
-    console.log("Error occurred attempting to control sound", err);
+  } catch (error) {
+    err("Error occurred attempting to control sound", error);
   }
     
 }
+
+function settingsUI(ctx, workletHandle) {
+  gainControl(ctx);
+  freqControl(workletHandle);
+  // const gainControl = document.querySelector('#gain-control');
+
+  // NOTE: `oninput` doesn't work on IE10
+  // gainControl.addEventListener("change", handlerFn);
   
 
-window.onload = function(e) {
-  console.log("Hello world!");
-  const button = document.querySelector('#play-sound-button');
-  button.onclick = this.playHandler;
-};
+  
+}
+
+function freqControl(workletHandle) {
+  const inputEl = document.querySelector('#freq-control');
+  inputEl.addEventListener("input", function(e) {
+    const val = event.target.value;
+    console.log(`Frequency: ${val}hz`);
+    // globalGain.gain.value = event.target.value / 150;
+    // gainNode.gain.setValueAtTime(event.target.value, ctx.currentTime)
+    workletHandle.parameters.get("frequency").value = val; 
+  });
+
+  inputEl.addEventListener("click", function(e) {
+    info(`Frequency control released. New gain value = ${workletHandle.parameters.get("frequency").value}`);
+  });
+}
+
+function gainControl(ctx) {
+  // const globalGain = new GainNode(ctx);
+
+  // // TODO: Why division by 150
+  // globalGain.gain.value = 5/150;
+
+  // globalGain.connect(ctx.destination);
+
+  // return globalGain;
+  const gainNode = ctx.createGain();
+  gainNode.connect(ctx.destination);
+
+
+
+  // const gainHandlerFn = volumeHandler(globalGain);
+  const inputEl = document.querySelector('#gain-control');
+  inputEl.addEventListener("input", function(e) {
+    console.log(`New Gain: ${event.target.value}`);
+    // globalGain.gain.value = event.target.value / 150;
+    gainNode.gain.setValueAtTime(event.target.value, ctx.currentTime)
+  });
+
+  inputEl.addEventListener("click", function(e) {
+    info(`Gain control released. New gain value = ${gainNode.gain.value}`);
+  });
+}
+
+
+// let theGain;
+
+// function volumeHandler(globalGain) {
+//   theGain = globalGain;
+//   return function(event) {
+//     // TODO: Why 150?
+//     console.log(`New Gain: ${event.target.value}`);
+//     // globalGain.gain.value = event.target.value / 150;
+//     gainNode.gain.setValueAtTime(event.target.value, audioCtx.currentTime)
+//   }
+// }
+
+
+function info(msg) {
+  console.log(msg);
+  writeMessage("info", msg);
+}
+
+function err(msg, error) {
+  console.error(msg, error);
+  const errMsg = error ? `${msg}. Details: ${e.message}` : msg; 
+  writeMessage("error", errMsg);
+}
+
+let msgLog;
+
+function writeMessage(type, msg) {
+  if (!msgLog) {
+    msgLog = document.querySelector(".message-log");
+  }
+
+  const p = document.createElement("p");
+  p.classList.add(`message-log-${type}`);
+  p.textContent = msg;
+
+  msgLog.appendChild(p);
+}
+
+function onLoadHandler(e) {
+  info("Hello world!");
+  const button = document.querySelector('#play-button');
+  button.onclick = playHandler;
+
+  // info("test info message");
+  // err("test error message");
+}
+
+window.onload = onLoadHandler;
