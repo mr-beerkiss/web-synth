@@ -16,7 +16,7 @@ cp ./target/wasm32-unknown-unknown/debug/wavetable.wasm ./dist
 # Copy Web files
 cp ./web/* dist
 
-pushd dist; python -m http.server
+pushd dist; python3 -m http.server
 
 # Optimisations: according to the blog post, use `wasm-opt` to reduce the wasm file size
 # TODO: Verify if it's -O4 ot 04
