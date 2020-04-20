@@ -109,7 +109,7 @@ async function init() {
   // handle to an instance of one.
   const ctx = new AudioContext();
 
-  await ctx.audioWorklet.addModule("/WaveTableNodeProcessor.js");
+  await ctx.audioWorklet.addModule("/wave-table-node-processor.js");
   const workletHandle = new AudioWorkletNode(ctx, "wavetable-node-processor");
 
   settingsUI(ctx, workletHandle);

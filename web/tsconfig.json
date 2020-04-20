@@ -9,6 +9,6 @@
   },
   "files": [
     "src/main.ts",
-    "src/wave-table-processor.ts"
+    "src/wave-table-node-processor.ts"
   ]
 }

@@ -8,6 +8,21 @@ declare var AudioWorkletProcessor: {
   new(options?: AudioWorkletNodeOptions): AudioWorkletProcessor;
 }
 
+// declare function registerProcessor(name: string, processer: AudioWorkletProcessor)
+//. TODO: Fix use of any
+declare function registerProcessor(name: string, processer: any)
+// generated from the wasm-pack branch and copied here
+interface WasmWaveTable {
+  memory: WebAssembly.Memory;
+  init_wavetable(a: number, b: number, c: number, d: number): number;
+  init_wavetable_handle(a: number): number;
+  get_data_table_ptr(a: number): number;
+  get_mixes_ptr(a: number, b: number): number;
+  get_frequencies_ptr(a: number, b: number): number;
+  get_samples(a: number, b: number): number;
+  drop_wavetable(a: number): void;
+  drop_wavetable_handle(a: number): void;
+}
 
 const data = {};
 const debug = (id, ...args) => console.log(`[${id}]: ${args.join(" ")}`);
@@ -56,11 +71,13 @@ type WasmMemoryOffset = number;
 class WaveTableNodeProcessor extends AudioWorkletProcessor {
 
   dimensionCount: number
-  wasmInstance: WebAssembly.Instance
+  // wasmInstance: WebAssembly.Instance
+  wasmWaveTable: WasmWaveTable
   float32WasmMemory: Float32Array
   wavetablePtr: WasmPointer
   wavetableHandlePtr: WasmPointer
   mixesArrayOffset: WasmMemoryOffset
+  port: MessagePort
 
   constructor() {
     super();
@@ -73,14 +90,16 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     this.dimensionCount = data.dimensionCount;
 
     const compiledModule = await WebAssembly.compile(data.arrayBuffer);
-    this.wasmInstance = await WebAssembly.instantiate(
+    const instance = await WebAssembly.instantiate(
       compiledModule,
       importObject
     );
 
+    this.wasmWaveTable = instance.exports as unknown as WasmWaveTable;
+
     // Call the Rust function exported from the Wasm module to create a wavetable instance with
     // the settings provided from the main thread.
-    this.wavetablePtr = this.wasmInstance.exports.init_wavetable(
+    this.wavetablePtr = this.wasmWaveTable.init_wavetable(
       data.waveformsPerDimension,
       data.dimensionCount,
       data.waveformLength,
@@ -91,11 +110,11 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     // been called, apparently, so we wait to set this reference until after calling one of
     // the Wasm functions
     this.float32WasmMemory = new Float32Array(
-      this.wasmInstance.exports.memory.buffer
+      this.wasmWaveTable.memory.buffer
     );
 
     // Grab the pointer to the buffer where the wavetable's waveforms' data will be stored
-    const wavetableDataPtr = this.wasmInstance.exports.get_data_table_ptr(
+    const wavetableDataPtr = this.wasmWaveTable.get_data_table_ptr(
       this.wavetablePtr
     );
 
@@ -116,13 +135,13 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     this.float32WasmMemory.set(data.tableSamples, wavetableDataArrayOffset);
 
     // Create a handle to the wavetable that we can use to sample it
-    this.wavetableHandlePtr = this.wasmInstance.exports.init_wavetable_handle(
+    this.wavetableHandlePtr = this.wasmWaveTable.init_wavetable_handle(
       this.wavetablePtr
     );
 
     // Grab a pointer to the buffer in which we'll store the mix parameters for the different
     // dimensions
-    const mixesPtr = this.wasmInstance.exports.get_mixes_ptr(
+    const mixesPtr = this.wasmWaveTable.get_mixes_ptr(
       this.wavetableHandlePtr,
       FRAME_SIZE
     );
@@ -141,6 +160,7 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
   }
 
   process(_inputs, outputs, params) {
+  // process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Map<string, Float32Array>): void {}
     // Since the Wasm module and wavetable are all asynchronously loaded, we need to wait until
     // after they're available to start outputting audio. Until then, we just output silence
     if (!this.wavetableHandlePtr) {
@@ -189,7 +209,7 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     }
 
     // Write the frequencies for each sample into Wasm memory
-    const frequencyBufPtr = this.wasmInstance.exports.get_frequencies_ptr(
+    const frequencyBufPtr = this.wasmWaveTable.get_frequencies_ptr(
       this.wavetableHandlePtr,
       FRAME_SIZE
     );
@@ -209,7 +229,7 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     }
 
     // TODO: Determine if this is in the write place
-    const generatedSamplesPtr = this.wasmInstance.exports.get_samples(
+    const generatedSamplesPtr = this.wasmWaveTable.get_samples(
       this.wavetableHandlePtr,
       FRAME_SIZE
     );
