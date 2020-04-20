@@ -1,14 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ES2015",
+    "module": "commonjs",
+    // "strict": true,
+    // "noImplicitReturns": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    // "declaration": true,
+    "target": "es2015",
+    "lib": ["es2017", "dom"],
     "outDir": "dist",
-    "lib": [
-      "DOM",
-      "ES2015"
-    ],
+    "rootDir": "./",
+    "baseUrl": ".",
+    "paths": {
+      "*": ["types/*"]
+    }
   },
-  "files": [
-    "src/main.ts",
-    "src/wave-table-node-processor.ts"
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules/*"
   ]
 }
