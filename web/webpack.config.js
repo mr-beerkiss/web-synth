@@ -15,8 +15,11 @@ module.exports = {
     // filename: '[name].bundle.js'
   },
 
+  
+
   output: {
     path: buildPath,
+    publicPath: "/",
     filename: '[name].bundle.js'
   },
 
@@ -30,17 +33,20 @@ module.exports = {
       {
         test: /\.ts$/,
         exclude: [/node_modules/, /\.worklet\.ts$/],
-        loader: 'ts-loader'
+        loader: 'babel-loader'
       },
       {
         test: /\.worklet\.ts$/,
-        use: [{
-          loader: "ts-loader"
-        },{ 
+        use: [{ 
           loader: 'worklet-loader',
           options: {
-            name: 'js/[hash].worklet.js'
-          }}
+            // name: '[hash].worklelst.js'
+            name: '[name].worklet.js'
+          },
+        },
+          {
+            loader: "babel-loader"
+          }
         ],
         
       }

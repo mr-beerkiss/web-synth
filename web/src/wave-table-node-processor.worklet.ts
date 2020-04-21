@@ -77,12 +77,13 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
   wavetablePtr: WasmPointer
   wavetableHandlePtr: WasmPointer
   mixesArrayOffset: WasmMemoryOffset
-  port: MessagePort
+  // port: MessagePort
 
   constructor() {
     super();
 
     // TODO: Why does `this.port` have a squiggly line?
+    console.log(this);
     this.port.onmessage = (event) => this.initWasmInstance(event.data);
   }
 

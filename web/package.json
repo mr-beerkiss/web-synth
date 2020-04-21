@@ -7,7 +7,14 @@
     "serve": "webpack-dev-server --watch",
     "build": "webpack && cp public/main.css dist && cp ../target/wasm32-unknown-unknown/debug/wavetable.wasm dist"
   },
+  "browserslist": [
+    "last 2 Chrome versions"
+  ],
   "devDependencies": {
+    "@babel/core": "^7.9.0",
+    "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/preset-env": "^7.9.5",
+    "@babel/preset-typescript": "^7.9.0",
     "babel-core": "^6.26.3",
     "babel-loader": "^8.1.0",
     "babel-preset-es2015": "^6.24.1",
