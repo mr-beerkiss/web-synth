@@ -1,6 +1,8 @@
 import config from "./config";
 
 import { sineWave, triangleWave, squareWave, sawtoothWave } from "./wave-generators";
+import { settingsUI } from "./event-handlers";
+import { info, err } from "./util";
 
 // @ts-ignore
 import worklet from "./wave-table-node-processor.worklet";
@@ -32,7 +34,7 @@ function createOscillator(ctx: AudioContext, workletHandle: AudioWorkletNode) {
   oscillatorGain.connect(dimension0Mix);
 }
 
-async function init() {
+async function init(): Promise<AudioContext> {
   const { sampleRate, desiredFrequency } = config;
   // Register our custom `AudioWorkletProcessor`, and create an `AudioWorkletNode` that serves as a
   // handle to an instance of one.
@@ -155,89 +157,11 @@ async function playHandler(e: Event) {
   }
 }
 
-function settingsUI(ctx: AudioContext, workletHandle: AudioWorkletNode) {
-  gainControl(ctx);
-  freqControl(workletHandle);
 
-  // TODO: Toggle oscillator
-  //createOscillator(ctx, workletHandle);
-}
 
-function freqControl(workletHandle: AudioWorkletNode) {
-  const inputEl = document.querySelector("#freq-control");
-  
-  inputEl!.addEventListener("input", function (event) {
-    const val = (event.target as HTMLInputElement).value;
-    console.log(`Frequency: ${val}hz`);
-    // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
-    // @ts-ignore
-    workletHandle.parameters.get("frequency").value = val;
-  });
 
-  inputEl! .addEventListener("click", function (event) {
-    info(
-      `Frequency control released. New gain value = ${
-        // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
-        // @ts-ignore
-        workletHandle.parameters.get("frequency").value
-      }`
-    );
-  });
-}
 
-// FIXME: Gain control doesn't appear to be working
-function gainControl(ctx: AudioContext) {
-  // TODO: Why division by 150 (OG code)
-  // globalGain.gain.value = 5/150;
 
-  // TODO: MDN recommends not using `new GainNode()` directly, why?
-  const gainNode = ctx.createGain();
-  gainNode.connect(ctx.destination);
-
-  // NOTE: `oninput` doesn't work on IE10
-  const inputEl = document.querySelector("#gain-control");
-  inputEl!.addEventListener("input", function (event) {
-    const value = (event.target as HTMLInputElement).value;
-    console.log(`New Gain: ${value}`);
-    const numValue = parseInt(value, 10);
-    gainNode.gain.setValueAtTime(numValue, ctx.currentTime);
-  });
-
-  inputEl!.addEventListener("click", function (event) {
-    info(`Gain control released. New gain value = ${gainNode.gain.value}`);
-  });
-}
-
-enum LogType {
-  INFO = "info",
-  ERROR = "error"
-}
-
-function info(msg: string) {
-  console.log(msg);
-  writeMessage(LogType.INFO, msg);
-}
-
-function err(msg: string, error: Error) {
-  console.error(msg, error);
-  const errMsg = error ? `${msg}. Details: ${error.message}` : msg;
-  writeMessage(LogType.ERROR, errMsg);
-}
-
-// TODO: Fix awkward union
-let msgLog: HTMLElement | null;
-
-function writeMessage(type: LogType, msg: string) {
-  if (!msgLog) {
-    msgLog = document.querySelector(".message-log");
-  }
-
-  const p = document.createElement("p");
-  p.classList.add(`message-log-${type}`);
-  p.textContent = msg;
-
-  msgLog!.appendChild(p);
-}
 
 function onLoadHandler(e: Event) {
   info("Hello world!");
