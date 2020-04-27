@@ -16,8 +16,33 @@ h1 {
   margin: var(--gutter-size);
 }
 
-.controls div {
+/* .controls div {
   margin: var(--gutter-size) 0;
+} */
+/*
+Following Flex box tutorial from here https://webdesign.tutsplus.com/tutorials/building-responsive-forms-with-flexbox--cms-26767
+*/
+.flex-outer li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.flex-outer > li > label {
+  flex: 1 0 120px;
+  max-width: 150px;
+}
+
+.flex-outer > li > label + input {
+  margin-right: 20px;
+}
+
+flex-outer > li > label + * {
+  flex: 1 0 220px;
+}
+
+.flex-outer > li:not(:last-child) {
+  margin-bottom: 20px;
 }
 
 .message-log {

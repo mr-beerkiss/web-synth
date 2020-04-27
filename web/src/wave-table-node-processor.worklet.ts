@@ -186,6 +186,7 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
 
     // Write the nixes for each sample in the frame into the Wasm memory. Mixes are a flattened 3D
     // array of the form `mixes[dimensionIx][interOrIntraIndex][sampleIx]`
+    console.log(`Set up mix values: DimensionCount = ${this.dimensionCount}`);
     for (
       let dimensionIx = 0;
       dimensionIx < this.dimensionCount;
@@ -194,7 +195,7 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
       const intraDimensionalMixVals = params[`dimension_${dimensionIx}_mix`]; 
       const interDimensionalMixVals =
         dimensionIx > 0
-          ? params[`dimesion_${dimensionIx - 1}x${dimensionIx}_mix`]
+          ? params[`dimension_${dimensionIx - 1}x${dimensionIx}_mix`]
           : null;
 
       for (let sampleIx = 0; sampleIx < FRAME_SIZE; sampleIx += 1) {

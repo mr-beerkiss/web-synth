@@ -14,8 +14,7 @@ Still a long way to go but it works
 
 Heavily influenced by this blog post: https://cprimozic.net/blog/buliding-a-wavetable-synthesizer-with-rust-wasm-and-webaudio/#overview.
 
-In fact all the meaningful code is a direct rip off. It's been a very valuable starting point for me 
-on this journey!
+In fact all the meaningful code is a direct rip off. It's been a very valuable starting point for me on this journey!
 
 ### Code
 

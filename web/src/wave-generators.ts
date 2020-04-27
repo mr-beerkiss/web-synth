@@ -8,7 +8,7 @@ export function sineWave(sampleRate: number, frequency: number): Array<number> {
 
   for (let x = 0; x < waveformSampleCount; x += 1) {
     buf[x] = Math.sin(x * ((Math.PI * 2) / waveformSampleCount));
-    buf[x] = Math.sin((x * Math.PI * 2) / waveformSampleCount);
+    // buf[x] = Math.sin((x * Math.PI * 2) / waveformSampleCount);
   }
 
   return buf;

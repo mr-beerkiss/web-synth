@@ -1,4 +1,4 @@
-import { info, err } from "./util";
+import { info } from "./util";
 
 
 
@@ -16,12 +16,60 @@ function freqControl(workletHandle: AudioWorkletNode) {
 
   inputEl!.addEventListener("click", function (event) {
     info(
-      `Frequency control released. New gain value = ${
+      `Frequency control released. New value = ${
         // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
         // @ts-ignore
         workletHandle.parameters.get("frequency").value
       }`
     );
+  });
+}
+
+function dimension0MixControl(workletHandle: AudioWorkletNode) {
+  const inputEl = document.querySelector("#dim-0-mix-control");
+  const valueLabel = document.querySelector("#dim-0-mix-control-value");
+  inputEl!.addEventListener("input", function (event) {
+    const val = (event.target as HTMLInputElement).value;
+    console.log(`Dim 0 Mix: ${val}`);
+    // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
+    // @ts-ignore
+    workletHandle.parameters.get("dimension_0_mix").value = val;
+    valueLabel!.textContent = `${val}`;
+  });
+
+  inputEl!.addEventListener("click", function (event) {
+    info(
+      `Dimension 0 mix control released. New value = ${
+        // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
+        // @ts-ignore
+        workletHandle.parameters.get("dimension_0_mix").value
+      }`
+    );
+  });
+}
+
+function dimension0x1MixControl(workletHandle: AudioWorkletNode) {
+  const inputEl = document.querySelector("#dim-0x1-mix-control");
+  const valueLabel = document.querySelector("#dim-0x1-mix-control-value");
+  inputEl!.addEventListener("input", function (event) {
+    const val = (event.target as HTMLInputElement).value;
+    console.log(`Dim 0x1 Mix: ${val}`);
+    // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
+    // @ts-ignore
+    workletHandle.parameters.get("dimension_0x1_mix").value = val;
+    valueLabel!.textContent = `${val}`;
+  });
+
+  inputEl!.addEventListener("click", function (event) {
+    info(
+      `Dimension 0x1 mix control released. New value = ${
+        // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
+        // @ts-ignore
+        workletHandle.parameters.get("dimension_0x1_mix").value
+      }`
+    );
+    // debugger;
+    console.log(workletHandle.parameters);
   });
 }
 
@@ -51,6 +99,8 @@ function gainControl(ctx: AudioContext) {
 export function settingsUI(ctx: AudioContext, workletHandle: AudioWorkletNode) {
   gainControl(ctx);
   freqControl(workletHandle);
+  dimension0MixControl(workletHandle);
+  dimension0x1MixControl(workletHandle);
 
   // TODO: Toggle oscillator
   //createOscillator(ctx, workletHandle);
