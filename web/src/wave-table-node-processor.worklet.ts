@@ -9,8 +9,8 @@ declare var AudioWorkletProcessor: {
 }
 
 // declare function registerProcessor(name: string, processer: AudioWorkletProcessor)
-//. TODO: Fix use of any
-declare function registerProcessor(name: string, processer: any)
+//. TODO: Fix use of any, is return `void` correct?
+declare function registerProcessor(name: string, processor: any): void
 // generated from the wasm-pack branch and copied here
 interface WasmWaveTable {
   memory: WebAssembly.Memory;
@@ -25,7 +25,8 @@ interface WasmWaveTable {
 }
 
 const data = {};
-const debug = (id, ...args) => console.log(`[${id}]: ${args.join(" ")}`);
+// TODO: Is any correct?
+const debug = (id: String, ...args: any[]) => console.log(`[${id}]: ${args.join(" ")}`);
 const importObject = {
   env: {
     debug1_: debug,
@@ -55,14 +56,22 @@ const FRAME_SIZE = 128;
 
 // const waveformSampleCount = SAMPLE_RATE / desiredFrequency;
 
-// TODO: Missing implementation
-function clamp(min, max, value) {
+function clamp(min: number, max: number, value: number): number {
   if (value < min) 
     return min;
   else if (value > max)
     return max;
   
   return value;
+}
+
+interface WaveTableInit {
+  arrayBuffer: ArrayBuffer,
+  dimensionCount: number,
+  waveformsPerDimension: number,
+  waveformLength: number,
+  baseFrequency: number,
+  tableSamples: Float32Array
 }
 
 type WasmPointer = number;
@@ -72,8 +81,8 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
 
   dimensionCount: number
   // wasmInstance: WebAssembly.Instance
-  wasmWaveTable: WasmWaveTable
-  float32WasmMemory: Float32Array
+  wasmWaveTable?: WasmWaveTable
+  float32WasmMemory?: Float32Array
   wavetablePtr: WasmPointer
   wavetableHandlePtr: WasmPointer
   mixesArrayOffset: WasmMemoryOffset
@@ -82,12 +91,17 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
 
+    this.dimensionCount = 0;
+    this.wavetablePtr = -1;
+    this.wavetableHandlePtr = -1;
+    this.mixesArrayOffset = -1;
+
     // TODO: Why does `this.port` have a squiggly line?
     console.log(this);
     this.port.onmessage = (event) => this.initWasmInstance(event.data);
   }
 
-  async initWasmInstance(data) {
+  async initWasmInstance(data: WaveTableInit) {
     this.dimensionCount = data.dimensionCount;
 
     const compiledModule = await WebAssembly.compile(data.arrayBuffer);
@@ -160,7 +174,7 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     // f32WasmMemoryView.set(wavetableData, f32WasmMemoryBufferIx);
   }
 
-  process(_inputs, outputs, params) {
+  process(_inputs: Float32Array[][], outputs: Float32Array[][], params: Map<String, Float32Array>) {
   // process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Map<string, Float32Array>): void {}
     // Since the Wasm module and wavetable are all asynchronously loaded, we need to wait until
     // after they're available to start outputting audio. Until then, we just output silence
@@ -210,7 +224,7 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     }
 
     // Write the frequencies for each sample into Wasm memory
-    const frequencyBufPtr = this.wasmWaveTable.get_frequencies_ptr(
+    const frequencyBufPtr = this.wasmWaveTable!.get_frequencies_ptr(
       this.wavetableHandlePtr,
       FRAME_SIZE
     );
@@ -223,14 +237,14 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     
     if (params.frequency.length === 1) {
       for (let i=0; i < FRAME_SIZE; i+= 1) {
-        this.float32WasmMemory[frequencyBufArrayOffset + i] = params.frequency[0];
+        this.float32WasmMemory![frequencyBufArrayOffset + i] = params.frequency[0];
       }
     } else {
-      this.float32WasmMemory.set(params.frequency, frequencyBufArrayOffset);
+      this.float32WasmMemory!.set(params.frequency, frequencyBufArrayOffset);
     }
 
     // TODO: Determine if this is in the write place
-    const generatedSamplesPtr = this.wasmWaveTable.get_samples(
+    const generatedSamplesPtr = this.wasmWaveTable!.get_samples(
       this.wavetableHandlePtr,
       FRAME_SIZE
     );
@@ -245,7 +259,7 @@ class WaveTableNodeProcessor extends AudioWorkletProcessor {
     for (let outputIx = 0; outputIx < outputs.length; outputIx += 1 ) {
       for (let channelIx = 0; channelIx < outputs[outputIx].length; channelIx += 1) {
         for (let sampleIx = 0; sampleIx < FRAME_SIZE; sampleIx += 1) {
-          const sample = this.float32WasmMemory[
+          const sample = this.float32WasmMemory![
             generatedSamplesArrayOffset + sampleIx
           ];
           outputs[outputIx][channelIx][sampleIx] = sample;

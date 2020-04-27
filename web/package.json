@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "serve": "webpack-dev-server --watch",
-    "build": "webpack && cp public/main.css dist && cp ../target/wasm32-unknown-unknown/debug/wavetable.wasm dist"
+    "build": "webpack && cp public/main.css dist && cp ../target/wasm32-unknown-unknown/debug/wavetable.wasm dist",
+    "tsc:watch": "tsc --watch"
   },
   "browserslist": [
     "last 2 Chrome versions"
@@ -13,6 +14,8 @@
   "devDependencies": {
     "@babel/core": "^7.9.0",
     "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.8.3",
+    "@babel/plugin-proposal-optional-chaining": "^7.9.0",
     "@babel/preset-env": "^7.9.5",
     "@babel/preset-typescript": "^7.9.0",
     "babel-core": "^6.26.3",

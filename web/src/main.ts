@@ -2,10 +2,11 @@ import config from "./config";
 
 import { sineWave, triangleWave, squareWave, sawtoothWave } from "./wave-generators";
 
+// @ts-ignore
 import worklet from "./wave-table-node-processor.worklet";
 
 
-function createOscillator(ctx, workletHandle) {
+function createOscillator(ctx: AudioContext, workletHandle: AudioWorkletNode) {
   // create an oscillator that outputs a 2hz triangle wave
   const oscillator = new OscillatorNode(ctx);
   oscillator.frequency.value = 2;
@@ -25,6 +26,8 @@ function createOscillator(ctx, workletHandle) {
   oscillatorCSN.start();
 
   // `oscillatorGain` now outputs a signal in the proper range to modulate our mix param
+  // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
+  // @ts-ignore
   const dimension0Mix = workletHandle.parameters.get("dimension_0_mix");
   oscillatorGain.connect(dimension0Mix);
 }
@@ -114,9 +117,10 @@ async function init() {
 // TODO: Remove global vars
 let ready = false;
 let playing = false;
-let audioContext = null;
+let audioContext: AudioContext | null = null;
 
-async function playHandler(e) {
+async function playHandler(e: Event) {
+  
   try {
     if (!ready) {
       audioContext = await init();
@@ -132,15 +136,17 @@ async function playHandler(e) {
     throw new Error("Whoops, something went very wrong");
   }
 
+  const target = (e.target as HTMLButtonElement);
+
   try {
     if (!playing) {
       await audioContext.resume();
       info("Starting playing...");
-      e.target.innerText = "Stop";
+      target.innerText = "Stop";
     } else {
       audioContext.suspend();
       info("Stop");
-      e.target.innerText = "Play";
+      target.innerText = "Play";
     }
 
     playing = !playing;
@@ -149,7 +155,7 @@ async function playHandler(e) {
   }
 }
 
-function settingsUI(ctx, workletHandle) {
+function settingsUI(ctx: AudioContext, workletHandle: AudioWorkletNode) {
   gainControl(ctx);
   freqControl(workletHandle);
 
@@ -157,18 +163,22 @@ function settingsUI(ctx, workletHandle) {
   //createOscillator(ctx, workletHandle);
 }
 
-function freqControl(workletHandle) {
+function freqControl(workletHandle: AudioWorkletNode) {
   const inputEl = document.querySelector("#freq-control");
   
-  inputEl.addEventListener("input", function (event) {
+  inputEl!.addEventListener("input", function (event) {
     const val = (event.target as HTMLInputElement).value;
     console.log(`Frequency: ${val}hz`);
+    // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
+    // @ts-ignore
     workletHandle.parameters.get("frequency").value = val;
   });
 
-  inputEl.addEventListener("click", function (event) {
+  inputEl! .addEventListener("click", function (event) {
     info(
       `Frequency control released. New gain value = ${
+        // TODO: Why does Typescript think `AudioParamMap` does not have a get Parameter?
+        // @ts-ignore
         workletHandle.parameters.get("frequency").value
       }`
     );
@@ -176,7 +186,7 @@ function freqControl(workletHandle) {
 }
 
 // FIXME: Gain control doesn't appear to be working
-function gainControl(ctx) {
+function gainControl(ctx: AudioContext) {
   // TODO: Why division by 150 (OG code)
   // globalGain.gain.value = 5/150;
 
@@ -186,31 +196,38 @@ function gainControl(ctx) {
 
   // NOTE: `oninput` doesn't work on IE10
   const inputEl = document.querySelector("#gain-control");
-  inputEl.addEventListener("input", function (event) {
+  inputEl!.addEventListener("input", function (event) {
     const value = (event.target as HTMLInputElement).value;
     console.log(`New Gain: ${value}`);
-    gainNode.gain.setValueAtTime(value, ctx.currentTime);
+    const numValue = parseInt(value, 10);
+    gainNode.gain.setValueAtTime(numValue, ctx.currentTime);
   });
 
-  inputEl.addEventListener("click", function (event) {
+  inputEl!.addEventListener("click", function (event) {
     info(`Gain control released. New gain value = ${gainNode.gain.value}`);
   });
 }
 
-function info(msg) {
-  console.log(msg);
-  writeMessage("info", msg);
+enum LogType {
+  INFO = "info",
+  ERROR = "error"
 }
 
-function err(msg, error) {
+function info(msg: string) {
+  console.log(msg);
+  writeMessage(LogType.INFO, msg);
+}
+
+function err(msg: string, error: Error) {
   console.error(msg, error);
   const errMsg = error ? `${msg}. Details: ${error.message}` : msg;
-  writeMessage("error", errMsg);
+  writeMessage(LogType.ERROR, errMsg);
 }
 
-let msgLog;
+// TODO: Fix awkward union
+let msgLog: HTMLElement | null;
 
-function writeMessage(type, msg) {
+function writeMessage(type: LogType, msg: string) {
   if (!msgLog) {
     msgLog = document.querySelector(".message-log");
   }
@@ -219,13 +236,16 @@ function writeMessage(type, msg) {
   p.classList.add(`message-log-${type}`);
   p.textContent = msg;
 
-  msgLog.appendChild(p);
+  msgLog!.appendChild(p);
 }
 
-function onLoadHandler(e) {
+function onLoadHandler(e: Event) {
   info("Hello world!");
-  const button: HTMLElement = document.querySelector("#play-button");
-  button.onclick = playHandler;
+  // TODO: Fix awkward union
+  const button: HTMLElement | null = document.querySelector("#play-button");
+  if (button) {
+    button.onclick = playHandler;
+  } 
 }
 
 window.onload = onLoadHandler;
